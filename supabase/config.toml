@@ -1,0 +1,16 @@
+# Supabase CLI workspace config for the NICC-SJ Finance Portal.
+#
+# Only the bits used by `supabase link` / `supabase db push` (PM.md AR-13
+# option a) are kept here. Local-docker sections (`supabase start`, db port
+# mapping, GoTrue settings, etc.) are intentionally omitted in v1 — owner
+# runs migrations against the hosted dev project directly. They can be
+# re-added later for offline development without affecting cloud apply.
+#
+# Project ref is the dev project provisioned under AR-2; see PM.md §7.
+
+project_id = "yichgxjifldxkkpwxwxo"
+
+[db]
+# Same major version as the hosted dev project; keep in sync if Supabase
+# upgrades the cloud project.
+major_version = 15

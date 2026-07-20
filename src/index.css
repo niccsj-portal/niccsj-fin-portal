@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * shadcn/ui semantic tokens, mapped to the NICC-SJ brand palette (graphics §3).
+ * HSL channel triplets (no `hsl()` wrapper) are required so Tailwind can wrap
+ * them as `hsl(var(--token) / <alpha-value>)`.
+ */
+@layer base {
+  :root {
+    --background: 210 40% 98%; /* surface-50  #F8FAFC */
+    --foreground: 222 47% 11%; /* ink-900     #0F172A */
+
+    --card: 0 0% 100%; /* surface-0   #FFFFFF */
+    --card-foreground: 222 47% 11%; /* ink-900 */
+
+    --popover: 0 0% 100%; /* surface-0 */
+    --popover-foreground: 222 47% 11%; /* ink-900 */
+
+    --primary: 217 64% 33%; /* brand-700   #1E4A8A */
+    --primary-foreground: 0 0% 100%; /* surface-0 */
+
+    --secondary: 213 65% 94%; /* brand-100   #E6EEF9 */
+    --secondary-foreground: 218 79% 20%; /* brand-900   #0B2B5C */
+
+    --muted: 214 32% 91%; /* line-200    #E2E8F0 */
+    --muted-foreground: 215 16% 47%; /* ink-500     #64748B */
+
+    --accent: 45 76% 93%; /* accent-100  #FBF3DD */
+    --accent-foreground: 41 63% 25%; /* darker gold (readable on accent-100) */
+
+    --destructive: 0 74% 42%; /* danger      #B91C1C */
+    --destructive-foreground: 0 0% 100%; /* surface-0 */
+
+    --border: 214 32% 91%; /* line-200 */
+    --input: 214 32% 91%; /* line-200 */
+    --ring: 215 53% 50%; /* brand-500   #3B72C4 */
+
+    --radius: 0.625rem; /* matches the md token (10px) used by shadcn defaults */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* Page background and primary text — graphics §3.2 / §3.4 */
+    @apply bg-surface-50 text-ink-900 antialiased;
+  }
+
+  body {
+    @apply font-sans text-body;
+    /* Tabular figures for any financial numeral — graphics §4 */
+    font-feature-settings: 'tnum' 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif text-ink-900;
+  }
+}
+
+@layer utilities {
+  /* Tabular numerals for money/member numbers — graphics §4.1 (mono token) */
+  .font-tabular {
+    font-feature-settings: 'tnum' 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Thin gold rule used above page titles on statement PDFs and login — graphics §7 */
+  .rule-gold {
+    @apply h-px bg-accent-600;
+  }
+}
+
+/*
+ * Print-to-PDF stylesheet for the report views (Sprint 7 story 7.4). The chosen
+ * export approach is the browser's native print (window.print()), so the report
+ * needs to appear alone on the page. `.print-region` is isolated: everything
+ * else (nav, header, toolbars) is hidden, and any control inside the report
+ * marked `.no-print` (period selector, export buttons, chart/table toggle) is
+ * removed too so the printed sheet shows only the figures.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-region,
+  .print-region * {
+    visibility: visible;
+  }
+
+  .print-region {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+

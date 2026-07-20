@@ -1,0 +1,86 @@
+# Deploy the static SPA to GitHub Pages on every merge to `main`,
+# per docs/technology.md §8.2. Database migrations are intentionally
+# out of scope here — they are applied manually by the admin via
+# `supabase db push` until v1.5.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required for actions/deploy-pages@v4 (OIDC) + Pages publishing.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one production deploy at a time; never cancel an in-flight publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build SPA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Resolves the Pages base path (e.g. `/niccsj-portal/`) so the SPA's
+      # asset URLs are correct under project pages. Outputs `base_path`.
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # Supabase secrets are read at build time and inlined into the bundle.
+          # Configure these in repo settings → Secrets and variables → Actions.
+          # They may be empty while the dev Supabase project is being provisioned.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Build/version metadata surfaced on /admin/health (Sprint 9 story 9.4).
+          VITE_COMMIT_SHA: ${{ github.sha }}
+          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp }}
+          # Optional: last DB backup date, maintained from the backup runbook.
+          VITE_LAST_BACKUP: ${{ vars.LAST_BACKUP }}
+        run: npm run build
+
+      # GitHub Pages serves `404.html` for any unknown path. Copying
+      # `index.html` to `404.html` makes the SPA's client-side routes
+      # work on hard refresh / direct links.
+      - name: SPA fallback (copy index.html -> 404.html)
+        run: cp dist/index.html dist/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

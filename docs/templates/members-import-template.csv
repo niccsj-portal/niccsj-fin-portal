@@ -1,0 +1,5 @@
+member_number,first_name,last_name,email,phone,address,joined_date,role_in_household,baptism_status
+1,Chinedu,Okafor,chinedu.okafor@example.com,408-555-0101,123 Mission St San Jose CA 95112,2015-03-08,head,baptized
+2,Ngozi,Okafor,ngozi.okafor@example.com,408-555-0102,123 Mission St San Jose CA 95112,2015-03-08,spouse,baptized
+3,Chiamaka,Okafor,,,123 Mission St San Jose CA 95112,2018-09-16,child,baptized
+4,Emeka,Nwosu,emeka.nwosu@example.com,408-555-0110,456 Alum Rock Ave San Jose CA 95116,2016-11-20,head,baptized
