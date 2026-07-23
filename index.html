@@ -2,10 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Brand favicons from public/brand/ — see docs/graphics.md §7.2 -->
-    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
-    <link rel="icon" type="image/x-icon" sizes="any" href="/brand/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.png" />
+    <!-- Brand favicons from public/brand/ — see docs/graphics.md §7.2.
+         %BASE_URL% is substituted by Vite at build time so the links stay
+         correct under GitHub Pages Project sites (served at /<repo>/). -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%brand/favicon.svg" />
+    <link rel="icon" type="image/x-icon" sizes="any" href="%BASE_URL%brand/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%brand/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NICC-SJ Finance & Membership Portal</title>
     <!-- Brand typography: Inter (UI/body) + Source Serif 4 (display) — graphics §4 -->
