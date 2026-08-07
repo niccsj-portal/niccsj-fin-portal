@@ -292,6 +292,7 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 | 11.7 | Optional: PDF verification hash + verification page | P2 | M | gfx §11.4 |
 | 11.8 | Optional: Excel (.xlsx) export, if requested by Council | P2 | M | tech §13 |
 | 11.9 | Optional: dark mode | P2 | L | gfx §15 |
+| 11.10 | **Consolidated Financial Statement (FS):** single printable report combining the general/main ledger (income by category + expenses) and **all** CMO/CWO sub-accounts (opening/income/expense/closing per group), with a grand-total parish position, for community-meeting presentation. FS/Treasurer/Admin (Chaplain deferred — needs an RLS read grant on sub-account snapshots to match PRD §7); period selector; `window.print()` PDF + CSV export | P1 | L | PRD §4.5, §4.6, §7 |
 
 ---
 

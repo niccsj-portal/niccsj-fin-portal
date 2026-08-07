@@ -193,6 +193,24 @@ export function canViewSubAccounts(role: AppRole | null | undefined): boolean {
 }
 
 /**
+ * Roles permitted to view the consolidated financial statement (story 11.10;
+ * PRD §4.5/§4.6/§7): the whole-parish view combining the general ledger and
+ * every CMO/CWO sub-account. Restricted to roles that already read BOTH the
+ * main ledger (privileged reader) AND every sub-account rollup (overseer):
+ * Financial Secretary, Treasurer, Admin. Chaplain is deferred until an RLS
+ * read grant on sub-account snapshots lands (PRD §7). RLS stays authoritative.
+ */
+export const CONSOLIDATED_STATEMENT_ROLES: readonly AppRole[] = [
+  'fin_secretary',
+  'treasurer',
+  'admin',
+];
+
+export function canViewConsolidatedStatement(role: AppRole | null | undefined): boolean {
+  return !!role && CONSOLIDATED_STATEMENT_ROLES.includes(role);
+}
+
+/**
  * Roles permitted to reach the Admin Console and its tools — user/role
  * management, audit-log explorer, health, category + sub-account assignment
  * (Sprint 9; PRD §4.11 "Admin"). Only System Admin. Mirrors the admin-only RLS
@@ -280,6 +298,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     path: '/reports',
     icon: FileText,
     roles: ['fin_secretary', 'treasurer', 'group_fin_sec', 'chaplain', 'finance_council', 'admin'],
+  },
+  {
+    key: 'consolidated-statement',
+    label: 'Consolidated statement',
+    path: '/reports/consolidated',
+    icon: FileText,
+    roles: CONSOLIDATED_STATEMENT_ROLES,
   },
   {
     key: 'annual-summary',

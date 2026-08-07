@@ -10,6 +10,7 @@ import type {
   ReportPeriod,
   SubAccountRollup,
   TrendPoint,
+  ConsolidatedStatement,
 } from '@/lib/reports/types';
 
 /**
@@ -270,4 +271,55 @@ export function subAccountRollups(
 export function reportYears(count = 5): number[] {
   const current = new Date().getFullYear();
   return Array.from({ length: count }, (_, i) => current - i);
+}
+
+/**
+ * The consolidated financial statement (story 11.10; PRD §4.5/§4.6/§7). Combines
+ * the general/main ledger (contribution income by category + approved expense)
+ * with every CMO/CWO sub-account rollup and computes a parish-wide grand total.
+ * Pure: callers pass rows already period-scoped and RLS-permitted; this only
+ * shapes them. Grand income/expense add the general figures to the sum of every
+ * group's income/expense so the total reflects the whole parish position.
+ */
+export function consolidatedStatement(input: {
+  periodLabel: string;
+  contributions: ContributionRow[];
+  expenses: ExpenseRow[];
+  categoryName: (id: string) => string;
+  rollups: SubAccountRollup[];
+}): ConsolidatedStatement {
+  const { periodLabel, contributions, expenses, categoryName, rollups } = input;
+  const kpis = financeKpis(contributions, expenses);
+  const categories = categorySplit(contributions, categoryName);
+
+  const subTotal = rollups.reduce(
+    (acc, r) => ({
+      opening: acc.opening + r.opening,
+      income: acc.income + r.income,
+      expense: acc.expense + r.expense,
+      closing: acc.closing + r.closing,
+    }),
+    { opening: 0, income: 0, expense: 0, closing: 0 },
+  );
+
+  const grandIncome = kpis.income + subTotal.income;
+  const grandExpense = kpis.expense + subTotal.expense;
+
+  return {
+    periodLabel,
+    main: {
+      income: kpis.income,
+      expense: kpis.expense,
+      net: kpis.net,
+      pending: kpis.pending,
+      categories,
+    },
+    subAccounts: rollups,
+    subTotal,
+    grand: {
+      income: grandIncome,
+      expense: grandExpense,
+      net: grandIncome - grandExpense,
+    },
+  };
 }

@@ -15,6 +15,7 @@ import { ApprovalQueuePage } from '@/routes/expenses/ApprovalQueuePage';
 import { NotificationsPage } from '@/routes/expenses/NotificationsPage';
 import { SubAccountManagerPage } from '@/routes/sub-accounts/SubAccountManagerPage';
 import { ReportsPage } from '@/routes/reports/ReportsPage';
+import { ConsolidatedStatementPage } from '@/routes/reports/ConsolidatedStatementPage';
 import { AnnualSummaryPage } from '@/routes/summary/AnnualSummaryPage';
 import { SignaturePage } from '@/routes/signature/SignaturePage';
 import { TwoFactorEnrollPage } from '@/routes/TwoFactorEnrollPage';
@@ -172,6 +173,14 @@ export default function App() {
           element={
             <RequireRole navKey="reports">
               <ReportsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/reports/consolidated"
+          element={
+            <RequireRole navKey="consolidated-statement">
+              <ConsolidatedStatementPage />
             </RequireRole>
           }
         />

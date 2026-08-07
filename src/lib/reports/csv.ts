@@ -1,5 +1,6 @@
 import type { CategoryTotal } from '@/lib/contributions/search';
 import type {
+  ConsolidatedStatement,
   FinanceKpis,
   Participation,
   SubAccountRollup,
@@ -64,6 +65,50 @@ export function financeReportToCsv(input: FinanceReportCsvInput): string {
       lines.push(row([r.name, r.opening, r.income, r.expense, r.closing]));
     }
   }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build the consolidated financial statement CSV (story 11.10). Three sections:
+ * the general/main account (income by category + KPIs), every CMO/CWO
+ * sub-account rollup with a sub-total row, and the parish-wide grand total.
+ * Aggregate-only — no per-member row is emitted.
+ */
+export function consolidatedStatementToCsv(statement: ConsolidatedStatement): string {
+  const { periodLabel, main, subAccounts, subTotal, grand } = statement;
+  const lines: string[] = [];
+
+  lines.push(row(['Consolidated Financial Statement']));
+  lines.push(row(['Period', periodLabel]));
+  lines.push('');
+
+  lines.push(row(['General account', 'Value']));
+  lines.push(row(['Income', main.income]));
+  lines.push(row(['Expense (approved)', main.expense]));
+  lines.push(row(['Net balance', main.net]));
+  lines.push(row(['Pending approvals', main.pending]));
+
+  if (main.categories.length > 0) {
+    lines.push('');
+    lines.push(row(['General income by category', 'Income']));
+    for (const c of main.categories) lines.push(row([c.name, c.total]));
+  }
+
+  lines.push('');
+  lines.push(row(['Sub-account', 'Opening', 'Income', 'Expense', 'Closing']));
+  for (const r of subAccounts) {
+    lines.push(row([r.name, r.opening, r.income, r.expense, r.closing]));
+  }
+  lines.push(
+    row(['All sub-accounts', subTotal.opening, subTotal.income, subTotal.expense, subTotal.closing]),
+  );
+
+  lines.push('');
+  lines.push(row(['Parish-wide total', 'Value']));
+  lines.push(row(['Total income (general + groups)', grand.income]));
+  lines.push(row(['Total expense (general + groups)', grand.expense]));
+  lines.push(row(['Net position', grand.net]));
 
   return lines.join('\n');
 }

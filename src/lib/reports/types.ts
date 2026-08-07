@@ -69,3 +69,35 @@ export interface SubAccountRollup {
   expense: number;
   closing: number;
 }
+
+/**
+ * The consolidated financial statement (story 11.10; PRD §4.5/§4.6/§7): the
+ * general/main ledger and every CMO/CWO sub-account in one printable view for
+ * community-meeting presentation. Read-only over Sprint 4–7 data — no new
+ * tables. `main` is the general account; `subAccounts` are the per-group
+ * rollups; `subTotal` sums them; `grand` is the parish-wide position (general
+ * income/expense plus every group's income/expense). Aggregate figures only —
+ * no per-member row is ever produced.
+ */
+export interface ConsolidatedStatement {
+  periodLabel: string;
+  main: {
+    income: number;
+    expense: number;
+    net: number;
+    pending: number;
+    categories: import('@/lib/contributions/search').CategoryTotal[];
+  };
+  subAccounts: SubAccountRollup[];
+  subTotal: {
+    opening: number;
+    income: number;
+    expense: number;
+    closing: number;
+  };
+  grand: {
+    income: number;
+    expense: number;
+    net: number;
+  };
+}
