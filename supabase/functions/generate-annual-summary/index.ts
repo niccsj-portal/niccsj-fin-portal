@@ -154,7 +154,42 @@ Deno.serve(async (req: Request) => {
     totalsByCategory.set(key, prev);
   }
   const categories = Array.from(totalsByCategory.values()).sort((a, b) => b.total - a.total);
-  const grandTotal = categories.reduce((sum, c) => sum + c.total, 0);
+
+  // Group dues attributed to this household's members on the CMO/CWO ledgers
+  // (PRD §4.5). These are separate from the main contribution ledger, so they
+  // are shown as their own "Group dues — <group>" lines and roll into the total.
+  const { data: memberRows, error: memberListErr } = await admin
+    .from('members')
+    .select('id')
+    .eq('household_id', household_id);
+  if (memberListErr) return errorResponse(memberListErr.message, 500);
+  const memberIds = (memberRows ?? []).map((m) => m.id);
+
+  const groupDues: { name: string; total: number }[] = [];
+  if (memberIds.length > 0) {
+    const { data: dues, error: duesErr } = await admin
+      .from('sub_account_transactions')
+      .select('amount, sub_accounts:sub_account_id(name)')
+      .in('member_id', memberIds)
+      .eq('direction', 'income')
+      .eq('is_active', true)
+      .gte('txn_date', start)
+      .lte('txn_date', end);
+    if (duesErr) return errorResponse(duesErr.message, 500);
+    const byGroup = new Map<string, number>();
+    for (const row of dues ?? []) {
+      const groupName = row.sub_accounts?.name ?? 'Group';
+      byGroup.set(groupName, (byGroup.get(groupName) ?? 0) + Number(row.amount));
+    }
+    for (const [groupName, total] of byGroup.entries()) {
+      groupDues.push({ name: `Group dues — ${groupName}`, total });
+    }
+    groupDues.sort((a, b) => b.total - a.total);
+  }
+
+  // Combined breakdown (contributions + group dues) drives the table + total.
+  const breakdown = [...categories, ...groupDues];
+  const grandTotal = breakdown.reduce((sum, c) => sum + c.total, 0);
   const contributionCount = (contribs ?? []).length;
 
   // ---- signature image bytes (private storage, service role) --------------
@@ -254,7 +289,7 @@ Deno.serve(async (req: Request) => {
   page.drawRectangle({ x: margin, y: cursorY, width: contentWidth, height: 1, color: INK_500 });
   cursorY -= 18;
 
-  if (categories.length === 0) {
+  if (breakdown.length === 0) {
     page.drawText('No contributions recorded for this year.', {
       x: margin,
       y: cursorY,
@@ -264,7 +299,7 @@ Deno.serve(async (req: Request) => {
     });
     cursorY -= 20;
   } else {
-    for (const cat of categories) {
+    for (const cat of breakdown) {
       const amount = money(cat.total);
       page.drawText(cat.name, { x: margin, y: cursorY, size: 11, font: helv, color: INK_700 });
       page.drawText(amount, {
@@ -376,7 +411,7 @@ Deno.serve(async (req: Request) => {
       filename,
       contentType: 'application/pdf',
       dataBase64: encodeBase64(pdfBytes),
-      meta: { grandTotal, contributionCount, categoryCount: categories.length },
+      meta: { grandTotal, contributionCount, categoryCount: breakdown.length },
     },
     200,
   );

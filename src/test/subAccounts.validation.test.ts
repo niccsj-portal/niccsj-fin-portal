@@ -59,10 +59,25 @@ describe('sub-account transaction validation (story 6.3)', () => {
       sub_account_id: 'sub-1',
       direction: 'expense',
       category_id: null,
+      member_id: null,
       payee: null,
       description: null,
       amount: 40,
       txn_date: '2026-03-05',
     });
+  });
+
+  it('carries a member_id through for a dues attribution', () => {
+    const input = toTransactionInput('sub-1', {
+      direction: 'income',
+      amount: 20,
+      txn_date: '2026-03-05',
+      category_id: 'cmo-dues',
+      member_id: 'm1',
+      payee: 'Ada Obi (#12)',
+      description: '',
+    });
+    expect(input.member_id).toBe('m1');
+    expect(input.payee).toBe('Ada Obi (#12)');
   });
 });

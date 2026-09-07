@@ -2,10 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
   ListSubAccountTransactionsFilters,
+  SubAccountCategoryRow,
   SubAccountReportRow,
   SubAccountRow,
   SubAccountTransactionInput,
   SubAccountTransactionRow,
+  SubAccountTransactionWithGroup,
 } from '@/lib/subAccounts/types';
 
 /**
@@ -39,6 +41,43 @@ export async function listSubAccounts(client: SupabaseClient): Promise<SubAccoun
     .order('name', { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as SubAccountRow[];
+}
+
+/**
+ * The category ids a group (sub-account) may record against (story 6.x). Scopes
+ * the Group FS category picker to their own group's dues + donations (PRD §7).
+ * RLS lets any authenticated caller read the mapping.
+ */
+export async function listSubAccountCategoryIds(
+  client: SupabaseClient,
+  subAccountId: string,
+): Promise<string[]> {
+  const { data, error } = await client
+    .from('sub_account_categories')
+    .select('category_id')
+    .eq('sub_account_id', subAccountId);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Pick<SubAccountCategoryRow, 'category_id'>[]).map((r) => r.category_id);
+}
+
+/**
+ * The group dues attributed to the signed-in member (member-facing view). RLS
+ * (`sub_account_transactions_select_own_member`) already limits rows to the
+ * caller; the explicit member filter keeps the query intent clear. The parent
+ * sub-account is embedded so the group name can be shown.
+ */
+export async function listMemberSubAccountDues(
+  client: SupabaseClient,
+  memberId: string,
+): Promise<SubAccountTransactionWithGroup[]> {
+  const { data, error } = await client
+    .from('sub_account_transactions')
+    .select('*, sub_accounts(name, slug)')
+    .eq('member_id', memberId)
+    .eq('is_active', true)
+    .order('txn_date', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SubAccountTransactionWithGroup[];
 }
 
 /** Transactions for one sub-account, newest first. Equality filters narrow server-side. */

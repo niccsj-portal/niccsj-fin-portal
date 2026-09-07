@@ -16,7 +16,8 @@
     "db:link": "supabase link --project-ref yichgxjifldxkkpwxwxo",
     "db:status": "supabase migration list --linked",
     "db:diff": "supabase db diff --linked",
-    "db:push": "supabase db push --linked"
+    "db:push": "supabase db push --linked",
+    "fn:deploy": "supabase functions deploy generate-annual-summary"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

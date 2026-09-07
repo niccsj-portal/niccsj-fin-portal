@@ -203,14 +203,14 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 
 ---
 
-### 4.8 Sprint 7 — Reports & Finance Council Dashboard *(M4)* — 🟢 Code-complete (pending cloud apply + demo)
+### 4.8 Sprint 7 — Reports & Finance Council Dashboard *(M4)* — ✅ Done (migration `20260630170000` cloud-applied; demoed 2026-08-17)
 
 **Sprint Goal:** Leadership and Council have meaningful aggregate views, with chart + table fallback and PDF/CSV exports.
 
 | # | Story | Priority | Est | Refs | State |
 |---|---|---|---|---|---|
 | 7.1 | Treasurer Finance Dashboard: Income / Expense / Net Balance / Pending Approvals KPIs; trend chart; category split chart; expenses table | P0 | L | UX §5.3, gfx §10.2 | ✅ Done |
-| 7.2 | Finance Council Oversight Dashboard (read-only): aggregate KPIs, trend, category breakdown, participation rate, sub-account rollups; persistent "aggregate-only" banner | P0 | L | PRD §4.6, UX §5.6, gfx §10.5 | ✅ Done (income/participation via aggregate RPCs — apply migration `20260630170000`) |
+| 7.2 | Finance Council Oversight Dashboard (read-only): aggregate KPIs, trend, category breakdown, participation rate, sub-account rollups; persistent "aggregate-only" banner | P0 | L | PRD §4.6, UX §5.6, gfx §10.5 | ✅ Done (income/participation via aggregate RPCs; migration `20260630170000` applied) |
 | 7.3 | Charts + "View as table" toggle for accessibility | P0 | M | NFR §5 | ✅ Done |
 | 7.4 | Monthly / Quarterly / Annual report views with PDF + CSV export | P0 | L | PRD §4.6 | ✅ Done (PDF = `window.print()`) |
 | 7.5 | Sub-account rollups visible to Council (opening/in/out/closing); no per-member drill-down rendered | P0 | M | PRD §4.6 | ✅ Done |
@@ -265,7 +265,7 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 
 | # | Story | Priority | Est | Refs | State |
 |---|---|---|---|---|---|
-| 10.1 | **[BLOCKER]** Provision Supabase **prod** project; run all migrations; configure secrets in GitHub Actions | P0 | M | tech §8.3 | 🟡 Ready — owner-gated (gates 1/2/4); ordered migration list + secrets checklist prepped (PM §5J.4) |
+| 10.1 | **[BLOCKER]** Provision Supabase **prod** project; run all migrations; configure secrets in GitHub Actions | P0 | M | tech §8.3 | ✅ Done (prod project provisioned; all migrations applied; Actions secrets configured, 2026-08-17) |
 | 10.2 | Production data import: 78 members / 89 families via CSV import; verify member-number range continues correctly | P0 | L | PRD §4.2, §9.2 | 🟡 Ready — owner-gated (gate 7); `docs/templates/members-import-template.csv` prepped |
 | 10.3 | Onboard real role-holders (Chaplain, Treasurer, FS, Group FS x2, Council, Admin) and verify 2FA enrollment policy | P0 | M | PRD §4.1 | 🟡 Ready — owner-gated (gate 8); follow `runbooks/add-user.md` |
 | 10.4 | Training sessions: 1 for FS/Treasurer/Group FS (admin tasks), 1 for Council/Chaplain, 1 for member-facing rollout | P0 | L | PRD risks | ⏳ Owner-led; agent can draft session outlines on request |

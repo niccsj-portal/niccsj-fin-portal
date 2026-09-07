@@ -14,6 +14,8 @@ import {
   totalAmount,
 } from '@/lib/contributions/search';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
+import { listMemberSubAccountDues } from '@/lib/subAccounts/api';
+import type { SubAccountTransactionWithGroup } from '@/lib/subAccounts/types';
 
 /**
  * Member self-service home (backlog story 3.1; UX §5.1; graphics §10.1).
@@ -45,22 +47,25 @@ export function MemberDashboard() {
   const [household, setHousehold] = useState<HouseholdRow | null>(null);
   const [rows, setRows] = useState<ContributionRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [groupDues, setGroupDues] = useState<SubAccountTransactionWithGroup[]>([]);
 
   useEffect(() => {
     let active = true;
     async function load() {
       if (!client || !memberId) return;
-      const [me, households, contributions, cats] = await Promise.all([
+      const [me, households, contributions, cats, dues] = await Promise.all([
         getMember(client, memberId),
         listHouseholds(client),
         listContributions(client, { activeOnly: true }),
         listCategories(client),
+        listMemberSubAccountDues(client, memberId),
       ]);
       if (!active) return;
       setMember(me);
       setHousehold(households.find((h) => h.id === me.household_id) ?? households[0] ?? null);
       setRows(contributions);
       setCategories(cats);
+      setGroupDues(dues);
     }
     void load();
     return () => {
@@ -163,6 +168,34 @@ export function MemberDashboard() {
             </ul>
           ) : (
             <p className="text-body-sm text-ink-500">{t('dashboard.noContributions')}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Group dues (CMO/CWO) attributed to this member */}
+      <Card className="mt-6 max-w-xl">
+        <CardHeader>
+          <CardTitle>{t('dashboard.groupDues')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {groupDues.length > 0 ? (
+            <ul className="space-y-2" aria-label={t('dashboard.groupDuesAria')}>
+              {groupDues.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex items-center justify-between border-b border-line-200 pb-1 text-body-sm last:border-b-0"
+                >
+                  <span className="text-ink-700">
+                    {new Date(row.txn_date).toLocaleDateString('en-US')} ·{' '}
+                    {row.sub_accounts?.name ??
+                      (row.category_id ? lookups.categoryName(row.category_id) : t('dashboard.groupDues'))}
+                  </span>
+                  <span className="tabular-nums text-ink-900">{formatUSD(Number(row.amount))}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-body-sm text-ink-500">{t('dashboard.groupDuesEmpty')}</p>
           )}
         </CardContent>
       </Card>

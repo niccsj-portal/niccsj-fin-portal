@@ -6,6 +6,7 @@ import type {
   AuditLogFilters,
   AuditLogRow,
   CategoryRow,
+  SubAccountCategoryRow,
   SubAccountRow,
   SubAccountUserRow,
 } from '@/lib/admin/types';
@@ -229,5 +230,42 @@ export async function removeSubAccountUser(
   assignmentId: string,
 ): Promise<void> {
   const { error } = await client.from('sub_account_users').delete().eq('id', assignmentId);
+  fail(error);
+}
+
+// ---------------------------------------------------------------------------
+// Sub-account ↔ category mapping (scopes the Group FS category picker, PRD §7)
+// ---------------------------------------------------------------------------
+
+/** Every sub-account ↔ category mapping (readable by any authenticated user). */
+export async function listSubAccountCategories(
+  client: SupabaseClient,
+): Promise<SubAccountCategoryRow[]> {
+  const { data, error } = await client
+    .from('sub_account_categories')
+    .select('*')
+    .order('created_at', { ascending: true });
+  fail(error);
+  return (data ?? []) as SubAccountCategoryRow[];
+}
+
+/** Allow a sub-account (group) to record against a category (admin-only via RLS). */
+export async function addSubAccountCategory(
+  client: SupabaseClient,
+  subAccountId: string,
+  categoryId: string,
+): Promise<void> {
+  const { error } = await client
+    .from('sub_account_categories')
+    .insert({ sub_account_id: subAccountId, category_id: categoryId });
+  fail(error);
+}
+
+/** Remove a sub-account ↔ category mapping (admin-only via RLS). */
+export async function removeSubAccountCategory(
+  client: SupabaseClient,
+  id: string,
+): Promise<void> {
+  const { error } = await client.from('sub_account_categories').delete().eq('id', id);
   fail(error);
 }

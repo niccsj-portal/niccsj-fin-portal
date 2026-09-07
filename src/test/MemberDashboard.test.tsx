@@ -101,6 +101,54 @@ describe('Member dashboard (story 3.1)', () => {
     expect(await screen.findByText(/no contributions recorded yet/i)).toBeInTheDocument();
   });
 
+  it('lists group dues attributed to the member', async () => {
+    const { client } = makeAppClient({
+      role: 'member',
+      memberId: 'm1',
+      tables: {
+        members: { single: member },
+        households: { rows: [household] },
+        sub_account_transactions: {
+          rows: [
+            {
+              id: 'd1',
+              sub_account_id: 's1',
+              direction: 'income',
+              category_id: 'dues',
+              member_id: 'm1',
+              payee: 'Ada Okafor (#1)',
+              description: null,
+              amount: 20,
+              txn_date: '2026-03-02',
+              is_active: true,
+              created_by: null,
+              updated_by: null,
+              created_at: '',
+              updated_at: '',
+              sub_accounts: { name: 'Catholic Men Organisation (CMO)', slug: 'cmo' },
+            },
+          ],
+        },
+      },
+    });
+    render(
+      <MemoryRouter>
+        <AuthProvider client={client}>
+          <DashboardPage />
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Welcome, Ada Okafor/);
+    expect(await screen.findByText(/Group dues/i)).toBeInTheDocument();
+    expect(screen.getByText(/Catholic Men Organisation \(CMO\)/)).toBeInTheDocument();
+    expect(screen.getByText('$20.00')).toBeInTheDocument();
+  });
+
+  it('shows an empty group-dues state when none are attributed', async () => {
+    renderDashboard();
+    expect(await screen.findByText(/no group dues applied to you yet/i)).toBeInTheDocument();
+  });
+
   it('offers a disabled "download annual family summary" action', async () => {
     renderDashboard();
     const cta = await screen.findByRole('button', { name: /annual family summary/i });

@@ -165,8 +165,8 @@ select is((select count(*)::int from public.members
 
 select tests.login('00000000-0000-0000-0000-000000000004'); -- group_fin_sec
 select is((select count(*)::int from public.members
-  where id in ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2')), 0,
-  'Group Financial Secretary sees no member rows (no household link)');
+  where id in ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2')), 2,
+  'Group Financial Secretary sees every member (to attribute group dues)');
 
 -- === members INSERT (PRD §7 "Create/edit member" = FS/Chaplain/Admin) ====
 select tests.login('00000000-0000-0000-0000-000000000002'); -- fin_secretary

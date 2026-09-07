@@ -19,6 +19,16 @@ const users = [
 
 const assignments = [{ id: 'a1', sub_account_id: 'sa1', user_id: 'u1', created_at: '2026-01-01' }];
 
+const categories = [
+  { id: 'c1', name: 'CMO Dues', type: 'income', parent_id: null, is_active: true },
+  { id: 'c2', name: 'Donations', type: 'income', parent_id: null, is_active: true },
+  { id: 'c3', name: 'Catering', type: 'expense', parent_id: null, is_active: true },
+];
+
+const subAccountCategories = [
+  { id: 'm1', sub_account_id: 'sa1', category_id: 'c1', created_at: '2026-01-01' },
+];
+
 function setup(tableOverrides = {}) {
   const ctx = makeAppClient({
     role: 'admin',
@@ -26,6 +36,8 @@ function setup(tableOverrides = {}) {
       users: { rows: users, single: { role: 'admin', member_id: null } },
       sub_accounts: { rows: subAccounts },
       sub_account_users: { rows: assignments },
+      categories: { rows: categories },
+      sub_account_categories: { rows: subAccountCategories },
       ...tableOverrides,
     },
   });
@@ -44,8 +56,8 @@ describe('SubAccountAssignmentPage', () => {
     setup();
     expect(await screen.findByText('CMO')).toBeInTheDocument();
     expect(screen.getByText('CWO')).toBeInTheDocument();
-    // group1 is assigned to CMO — exactly one Remove control exists.
-    expect(screen.getAllByRole('button', { name: /remove/i })).toHaveLength(1);
+    // group1 is assigned to CMO — exactly one assignment Remove control exists.
+    expect(screen.getAllByRole('button', { name: /^remove$/i })).toHaveLength(1);
     expect(screen.getAllByText('group1@example.com').length).toBeGreaterThan(0);
   });
 
@@ -67,7 +79,7 @@ describe('SubAccountAssignmentPage', () => {
   it('removes an assignment', async () => {
     const { calls } = setup();
     await screen.findByText('CMO');
-    fireEvent.click(screen.getByRole('button', { name: /remove/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^remove$/i }));
     await waitFor(() => expect(calls.filters).toContainEqual(['id', 'a1']));
   });
 
@@ -80,5 +92,37 @@ describe('SubAccountAssignmentPage', () => {
     await waitFor(() =>
       expect(calls.inserted).toEqual({ slug: 'youth', name: 'Youth Group', description: null }),
     );
+  });
+
+  it('shows a group\u2019s mapped categories and can remove one', async () => {
+    const { calls } = setup();
+    await screen.findByText('CMO');
+    // CMO (sa1) is mapped to CMO Dues — its remove control is uniquely labelled.
+    const removeCat = screen.getByRole('button', { name: /remove cmo dues/i });
+    expect(removeCat).toBeInTheDocument();
+    fireEvent.click(removeCat);
+    await waitFor(() => expect(calls.filters).toContainEqual(['id', 'm1']));
+  });
+
+  it('adds an income category to a group', async () => {
+    const { calls } = setup();
+    await screen.findByText('CWO');
+    // Add a category to CWO (sa2), which has no mapping yet.
+    const select = screen.getByLabelText(/add a category/i, { selector: '#add-cat-sa2' });
+    fireEvent.change(select, { target: { value: 'c2' } });
+    const addButtons = screen.getAllByRole('button', { name: /^add$/i });
+    fireEvent.click(addButtons[addButtons.length - 1]);
+    await waitFor(() =>
+      expect(calls.inserted).toEqual({ sub_account_id: 'sa2', category_id: 'c2' }),
+    );
+  });
+
+  it('only offers income categories in the add-category picker', async () => {
+    setup();
+    await screen.findByText('CWO');
+    const select = screen.getByLabelText(/add a category/i, { selector: '#add-cat-sa2' });
+    expect(select).toHaveTextContent('CMO Dues');
+    expect(select).toHaveTextContent('Donations');
+    expect(select).not.toHaveTextContent('Catering');
   });
 });

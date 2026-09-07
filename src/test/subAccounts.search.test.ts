@@ -4,6 +4,7 @@ import type { CategoryRow } from '@/lib/contributions/types';
 import {
   buildTransactionLookups,
   filterTransactions,
+  isDuesCategoryName,
   monthToDate,
   periodLabel,
   reportStatusTone,
@@ -18,6 +19,7 @@ function txn(over: Partial<SubAccountTransactionRow>): SubAccountTransactionRow 
     sub_account_id: 's1',
     direction: 'income',
     category_id: null,
+    member_id: null,
     payee: null,
     description: null,
     amount: 100,
@@ -96,6 +98,21 @@ describe('sub-account presentation tokens', () => {
 
   it('formats a human period label', () => {
     expect(periodLabel(2026, 3)).toBe('March 2026');
+  });
+});
+
+describe('dues category detection (member attribution)', () => {
+  it('recognises dues categories by name', () => {
+    expect(isDuesCategoryName('CMO Dues')).toBe(true);
+    expect(isDuesCategoryName('CWO Dues')).toBe(true);
+    expect(isDuesCategoryName('Legacy Annual Household Dues')).toBe(true);
+  });
+
+  it('does not treat other categories as dues', () => {
+    expect(isDuesCategoryName('Donations')).toBe(false);
+    expect(isDuesCategoryName('Harvest')).toBe(false);
+    expect(isDuesCategoryName(null)).toBe(false);
+    expect(isDuesCategoryName(undefined)).toBe(false);
   });
 });
 

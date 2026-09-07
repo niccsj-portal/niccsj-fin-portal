@@ -36,6 +36,9 @@ export const en = {
       "Contribution tracking begins soon — your family's totals will appear here once recording starts.",
     recent: 'Recent contributions',
     noContributions: 'No contributions recorded yet.',
+    groupDues: 'Group dues',
+    groupDuesEmpty: 'No group dues applied to you yet.',
+    groupDuesAria: 'Group dues applied to you',
     downloadCta: 'Download my annual family summary',
     downloadTitle: 'Your annual family summary will be available later this year.',
     downloadNote:

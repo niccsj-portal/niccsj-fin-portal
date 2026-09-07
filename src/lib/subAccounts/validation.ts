@@ -19,6 +19,7 @@ export const subAccountTransactionSchema = z.object({
     .positive('Amount must be greater than zero.'),
   txn_date: z.string().min(1, 'Date is required.'),
   category_id: z.string().optional(),
+  member_id: z.string().optional(),
   payee: z.string().trim().optional(),
   description: z.string().trim().optional(),
 });
@@ -44,6 +45,7 @@ export function toTransactionInput(
     sub_account_id: subAccountId,
     direction: values.direction as SubAccountTxnDirection,
     category_id: blankToNull(values.category_id),
+    member_id: blankToNull(values.member_id),
     payee: blankToNull(values.payee),
     description: blankToNull(values.description),
     amount: values.amount,

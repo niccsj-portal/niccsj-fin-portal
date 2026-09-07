@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assignSubAccountUser,
+  addSubAccountCategory,
   createCategory,
   createSubAccount,
   listAuditLog,
   listCategories,
+  listSubAccountCategories,
   listUsers,
   recentClientErrorCount,
+  removeSubAccountCategory,
   removeSubAccountUser,
   setCategoryActive,
   setUserActive,
@@ -90,5 +93,21 @@ describe('admin api', () => {
     const { client, calls } = makeAppClient({ tables: { sub_accounts: { single: { id: 'sa1' } } } });
     await createSubAccount(client, { name: '  Youth Group  ', slug: '  YOUTH  ' });
     expect(calls.inserted).toEqual({ slug: 'youth', name: 'Youth Group', description: null });
+  });
+
+  it('lists, adds and removes a sub-account category mapping', async () => {
+    const { client, calls } = makeAppClient({
+      tables: {
+        sub_account_categories: {
+          rows: [{ id: 'm1', sub_account_id: 'sa1', category_id: 'c1', created_at: '' }],
+        },
+      },
+    });
+    const rows = await listSubAccountCategories(client);
+    expect(rows).toHaveLength(1);
+    await addSubAccountCategory(client, 'sa1', 'c2');
+    expect(calls.inserted).toEqual({ sub_account_id: 'sa1', category_id: 'c2' });
+    await removeSubAccountCategory(client, 'm1');
+    expect(calls.filters).toContainEqual(['id', 'm1']);
   });
 });

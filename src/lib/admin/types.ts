@@ -66,3 +66,11 @@ export interface SubAccountUserRow {
   user_id: string;
   created_at: string;
 }
+
+/** A row of `public.sub_account_categories` — a category a group may record against. */
+export interface SubAccountCategoryRow {
+  id: string;
+  sub_account_id: string;
+  category_id: string;
+  created_at: string;
+}

@@ -25,6 +25,8 @@ export interface SubAccountTransactionRow {
   sub_account_id: string;
   direction: SubAccountTxnDirection;
   category_id: string | null;
+  /** Set when a dues payment is attributed to a specific member (PRD §4.5). */
+  member_id: string | null;
   payee: string | null;
   description: string | null;
   amount: number;
@@ -36,11 +38,25 @@ export interface SubAccountTransactionRow {
   updated_at: string;
 }
 
+/** Row shape when the parent sub-account is embedded (member-facing view). */
+export interface SubAccountTransactionWithGroup extends SubAccountTransactionRow {
+  sub_accounts: Pick<SubAccountRow, 'name' | 'slug'> | null;
+}
+
+/** Maps which categories a group (sub-account) may record against. */
+export interface SubAccountCategoryRow {
+  id: string;
+  sub_account_id: string;
+  category_id: string;
+  created_at: string;
+}
+
 /** Fields the income/expense form owns (actors are trigger-set server-side). */
 export interface SubAccountTransactionInput {
   sub_account_id: string;
   direction: SubAccountTxnDirection;
   category_id: string | null;
+  member_id: string | null;
   payee: string | null;
   description: string | null;
   amount: number;

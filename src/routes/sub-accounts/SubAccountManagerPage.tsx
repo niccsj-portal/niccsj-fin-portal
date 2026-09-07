@@ -17,7 +17,10 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { canManageSubAccounts } from '@/lib/auth/roles';
 import { listCategories } from '@/lib/contributions/api';
 import type { CategoryRow } from '@/lib/contributions/types';
+import { listHouseholds, listMembers } from '@/lib/members/api';
+import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 import {
+  listSubAccountCategoryIds,
   listSubAccountReports,
   listSubAccountTransactions,
   listSubAccounts,
@@ -27,6 +30,7 @@ import {
   buildTransactionLookups,
   filterTransactions,
   formatUSD,
+  isDuesCategoryName,
   monthToDate,
   totals,
   transactionsToCsv,
@@ -58,9 +62,15 @@ const emptyDefaults: SubAccountTransactionFormInput = {
   amount: '' as unknown as number,
   txn_date: today(),
   category_id: '',
+  member_id: '',
   payee: '',
   description: '',
 };
+
+/** Display label for a member option in the payee picker. */
+function memberLabel(m: MemberRow): string {
+  return `${m.first_name} ${m.last_name} (#${m.member_number})`.trim();
+}
 
 /**
  * Sub-Account Manager (story 6.3; PRD §4.5). A Group Financial Secretary
@@ -78,6 +88,9 @@ export function SubAccountManagerPage() {
   const [subAccounts, setSubAccounts] = useState<SubAccountRow[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [households, setHouseholds] = useState<HouseholdRow[]>([]);
+  const [groupCategoryIds, setGroupCategoryIds] = useState<string[]>([]);
   const [rows, setRows] = useState<SubAccountTransactionRow[]>([]);
   const [reports, setReports] = useState<SubAccountReportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +105,7 @@ export function SubAccountManagerPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SubAccountTransactionFormInput, unknown, SubAccountTransactionValues>({
     resolver: zodResolver(subAccountTransactionSchema),
@@ -99,8 +113,9 @@ export function SubAccountManagerPage() {
   });
 
   const formDirection = watch('direction');
+  const formCategoryId = watch('category_id');
 
-  // Load the caller's sub-accounts + categories once.
+  // Load the caller's sub-accounts + categories + members/households once.
   useEffect(() => {
     let active = true;
     if (!client) {
@@ -110,13 +125,17 @@ export function SubAccountManagerPage() {
     }
     void (async () => {
       try {
-        const [accounts, cats] = await Promise.all([
+        const [accounts, cats, mem, hh] = await Promise.all([
           listSubAccounts(client),
           listCategories(client, { activeOnly: true }),
+          listMembers(client, { status: 'active' }),
+          listHouseholds(client),
         ]);
         if (!active) return;
         setSubAccounts(accounts);
         setCategories(cats);
+        setMembers(mem);
+        setHouseholds(hh);
         setSelectedId((prev) => prev || accounts[0]?.id || '');
       } catch {
         if (active) setError('We could not load your sub-accounts. Please try again.');
@@ -128,6 +147,26 @@ export function SubAccountManagerPage() {
       active = false;
     };
   }, [client]);
+
+  // Load which categories this group may record against whenever it changes.
+  useEffect(() => {
+    let active = true;
+    if (!client || !selectedId) {
+      setGroupCategoryIds([]);
+      return;
+    }
+    void (async () => {
+      try {
+        const ids = await listSubAccountCategoryIds(client, selectedId);
+        if (active) setGroupCategoryIds(ids);
+      } catch {
+        if (active) setGroupCategoryIds([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [client, selectedId]);
 
   // (Re)load transactions + reports whenever the selected group changes.
   const loadLedger = useCallback(async () => {
@@ -168,19 +207,54 @@ export function SubAccountManagerPage() {
   );
 
   // Categories relevant to the form's current direction (income vs expense).
-  const formCategories = useMemo(
-    () =>
-      categories
-        .filter((c) => c.type === formDirection)
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [categories, formDirection],
+  // Group income is scoped to this group's mapped categories (their own dues +
+  // donations, PRD §7). If no mapping exists yet we fall back to all income
+  // categories so recording is never blocked. Expenses are never scoped.
+  const formCategories = useMemo(() => {
+    const byDirection = categories
+      .filter((c) => c.type === formDirection)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (formDirection !== 'income' || groupCategoryIds.length === 0) return byDirection;
+    const allowed = new Set(groupCategoryIds);
+    return byDirection.filter((c) => allowed.has(c.id));
+  }, [categories, formDirection, groupCategoryIds]);
+
+  // When the chosen category is a "dues" category, the payee is a specific
+  // member (so the member can see the due applied). Otherwise it is free text
+  // with household + member suggestions.
+  const isDuesSelected = useMemo(() => {
+    const cat = categories.find((c) => c.id === formCategoryId);
+    return isDuesCategoryName(cat?.name);
+  }, [categories, formCategoryId]);
+
+  const sortedMembers = useMemo(
+    () => [...members].sort((a, b) => a.member_number - b.member_number),
+    [members],
   );
+
+  const memberNameById = useMemo(() => {
+    const map = new Map(members.map((m) => [m.id, memberLabel(m)]));
+    return (id: string | null) => (id ? (map.get(id) ?? null) : null);
+  }, [members]);
+
+  // Clear the member link whenever the category stops being a dues category.
+  useEffect(() => {
+    if (!isDuesSelected) setValue('member_id', '');
+  }, [isDuesSelected, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     if (!client || !selectedId) return;
     setFormError(null);
+    // For a dues payment, label the ledger entry with the member so it reads
+    // clearly and stays searchable even without joining the members table.
+    const input = toTransactionInput(selectedId, values);
+    if (isDuesSelected && input.member_id) {
+      input.payee = memberNameById(input.member_id) ?? input.payee;
+    } else {
+      input.member_id = null;
+    }
     try {
-      await recordSubAccountTransaction(client, toTransactionInput(selectedId, values));
+      await recordSubAccountTransaction(client, input);
       reset({ ...emptyDefaults, direction: values.direction });
       await loadLedger();
     } catch (err) {
@@ -353,9 +427,41 @@ export function SubAccountManagerPage() {
 
             <div className="grid gap-1.5">
               <label htmlFor="payee" className="text-caption font-medium text-ink-700">
-                Payee / source <span className="text-muted-foreground">(optional)</span>
+                {isDuesSelected ? (
+                  'Member'
+                ) : (
+                  <>
+                    Payee / source <span className="text-muted-foreground">(optional)</span>
+                  </>
+                )}
               </label>
-              <Input id="payee" {...register('payee')} />
+              {isDuesSelected ? (
+                <select
+                  id="member_id"
+                  className={FIELD}
+                  {...register('member_id')}
+                  aria-label="Member paying dues"
+                >
+                  <option value="">Select a member</option>
+                  {sortedMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {memberLabel(m)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <Input id="payee" list="payee-options" {...register('payee')} />
+                  <datalist id="payee-options">
+                    {households.map((h) => (
+                      <option key={`h-${h.id}`} value={h.name} />
+                    ))}
+                    {sortedMembers.map((m) => (
+                      <option key={`m-${m.id}`} value={memberLabel(m)} />
+                    ))}
+                  </datalist>
+                </>
+              )}
             </div>
 
             <div className="grid gap-1.5">

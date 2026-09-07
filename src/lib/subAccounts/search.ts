@@ -31,6 +31,16 @@ export function buildTransactionLookups(categories: CategoryRow[]): TransactionL
   return { categoryName: (id) => (id ? (cat.get(id) ?? '—') : '—') };
 }
 
+/**
+ * A "dues" category is one whose name reads like member dues (CMO/CWO/household
+ * dues). We match by name — the same convention the Annual Dues widget uses
+ * (story 4.7) — so no schema flag is needed. When a dues category is chosen the
+ * Sub-Account form attributes the payment to a specific member (PRD §4.5).
+ */
+export function isDuesCategoryName(name: string | null | undefined): boolean {
+  return /\bdues\b/i.test(name ?? '');
+}
+
 export function transactionMatchesFilter(
   row: SubAccountTransactionRow,
   filter: TransactionFilter,

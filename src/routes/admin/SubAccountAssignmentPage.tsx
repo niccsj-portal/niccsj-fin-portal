@@ -5,14 +5,24 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth/AuthContext';
 import {
+  addSubAccountCategory,
   assignSubAccountUser,
   createSubAccount,
+  listCategories,
+  listSubAccountCategories,
   listSubAccountUsers,
   listSubAccounts,
   listUsers,
+  removeSubAccountCategory,
   removeSubAccountUser,
 } from '@/lib/admin/api';
-import type { AdminUserRow, SubAccountRow, SubAccountUserRow } from '@/lib/admin/types';
+import type {
+  AdminUserRow,
+  CategoryRow,
+  SubAccountCategoryRow,
+  SubAccountRow,
+  SubAccountUserRow,
+} from '@/lib/admin/types';
 
 const FIELD =
   'h-9 rounded-md border border-input bg-background px-2 text-body-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
@@ -28,10 +38,13 @@ export function SubAccountAssignmentPage() {
   const [subAccounts, setSubAccounts] = useState<SubAccountRow[]>([]);
   const [assignments, setAssignments] = useState<SubAccountUserRow[]>([]);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [catMap, setCatMap] = useState<SubAccountCategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Record<string, string>>({});
+  const [selectedCat, setSelectedCat] = useState<Record<string, string>>({});
 
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
@@ -46,14 +59,18 @@ export function SubAccountAssignmentPage() {
     setLoading(true);
     setError(null);
     try {
-      const [accounts, subUsers, allUsers] = await Promise.all([
+      const [accounts, subUsers, allUsers, cats, mappings] = await Promise.all([
         listSubAccounts(client),
         listSubAccountUsers(client),
         listUsers(client),
+        listCategories(client),
+        listSubAccountCategories(client),
       ]);
       setSubAccounts(accounts);
       setAssignments(subUsers);
       setUsers(allUsers);
+      setCategories(cats);
+      setCatMap(mappings);
     } catch {
       setError('We could not load sub-account assignments. Please try again.');
     } finally {
@@ -74,6 +91,17 @@ export function SubAccountAssignmentPage() {
   const eligibleUsers = useMemo(
     () => users.filter((u) => u.role === 'group_fin_sec' && u.is_active),
     [users],
+  );
+
+  const categoryName = useMemo(() => {
+    const map = new Map(categories.map((c) => [c.id, c.name]));
+    return (id: string) => map.get(id) ?? id;
+  }, [categories]);
+
+  /** Income categories are the ones a group records dues/donations against. */
+  const incomeCategories = useMemo(
+    () => categories.filter((c) => c.type === 'income' && c.is_active),
+    [categories],
   );
 
   const onAssign = async (subAccountId: string) => {
@@ -100,6 +128,36 @@ export function SubAccountAssignmentPage() {
       setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
     } catch {
       setError('We could not remove that assignment. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onAddCategory = async (subAccountId: string) => {
+    const categoryId = selectedCat[subAccountId];
+    if (!client || !categoryId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await addSubAccountCategory(client, subAccountId, categoryId);
+      setSelectedCat((prev) => ({ ...prev, [subAccountId]: '' }));
+      await load();
+    } catch {
+      setError('We could not add that category. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRemoveCategory = async (mappingId: string) => {
+    if (!client) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await removeSubAccountCategory(client, mappingId);
+      setCatMap((prev) => prev.filter((m) => m.id !== mappingId));
+    } catch {
+      setError('We could not remove that category. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -184,6 +242,9 @@ export function SubAccountAssignmentPage() {
             const rows = assignments.filter((a) => a.sub_account_id === account.id);
             const assignedIds = new Set(rows.map((a) => a.user_id));
             const options = eligibleUsers.filter((u) => !assignedIds.has(u.id));
+            const catRows = catMap.filter((m) => m.sub_account_id === account.id);
+            const mappedCatIds = new Set(catRows.map((m) => m.category_id));
+            const catOptions = incomeCategories.filter((c) => !mappedCatIds.has(c.id));
             return (
               <Card key={account.id}>
                 <CardHeader>
@@ -242,6 +303,70 @@ export function SubAccountAssignmentPage() {
                     >
                       Assign
                     </Button>
+                  </div>
+
+                  {/* Category scoping — which dues/donations this group records */}
+                  <div className="border-t border-line-200 pt-4">
+                    <p className="text-caption font-medium text-ink-700">
+                      Categories this group records (dues &amp; donations)
+                    </p>
+                    {catRows.length === 0 ? (
+                      <p className="mt-2 text-body-sm text-muted-foreground">
+                        No categories yet — this group sees all income categories until you add some.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {catRows.map((m) => (
+                          <li
+                            key={m.id}
+                            className="flex items-center gap-1.5 rounded-full border border-line-200 bg-surface-50 px-2.5 py-1 text-body-sm text-ink-900"
+                          >
+                            {categoryName(m.category_id)}
+                            <button
+                              type="button"
+                              aria-label={`Remove ${categoryName(m.category_id)}`}
+                              disabled={busy}
+                              onClick={() => void onRemoveCategory(m.id)}
+                              className="text-ink-500 hover:text-destructive disabled:opacity-50"
+                            >
+                              ×
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="mt-3 flex items-end gap-2">
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <label
+                          htmlFor={`add-cat-${account.id}`}
+                          className="text-caption font-medium text-ink-700"
+                        >
+                          Add a category
+                        </label>
+                        <select
+                          id={`add-cat-${account.id}`}
+                          className={FIELD}
+                          value={selectedCat[account.id] ?? ''}
+                          onChange={(e) =>
+                            setSelectedCat((prev) => ({ ...prev, [account.id]: e.target.value }))
+                          }
+                        >
+                          <option value="">Select a category…</option>
+                          {catOptions.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <Button
+                        disabled={busy || !selectedCat[account.id]}
+                        onClick={() => void onAddCategory(account.id)}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

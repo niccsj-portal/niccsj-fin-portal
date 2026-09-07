@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  listMemberSubAccountDues,
+  listSubAccountCategoryIds,
   listSubAccountReports,
   listSubAccountTransactions,
   listSubAccounts,
@@ -29,6 +31,7 @@ const txn: SubAccountTransactionRow = {
   sub_account_id: 's1',
   direction: 'income',
   category_id: null,
+  member_id: null,
   payee: 'Raffle',
   description: null,
   amount: 200,
@@ -70,6 +73,7 @@ describe('sub-account data access (story 6.3)', () => {
       sub_account_id: 's1',
       direction: 'income',
       category_id: null,
+      member_id: null,
       payee: 'Raffle',
       description: null,
       amount: 200,
@@ -77,6 +81,51 @@ describe('sub-account data access (story 6.3)', () => {
     });
     expect(created.id).toBe('t1');
     expect(calls.inserted).toMatchObject({ sub_account_id: 's1', direction: 'income' });
+  });
+
+  it('attributes a dues payment to a member on insert', async () => {
+    const { client, calls } = makeAppClient({
+      tables: { sub_account_transactions: { single: { ...txn, member_id: 'm1' } } },
+    });
+    await recordSubAccountTransaction(client, {
+      sub_account_id: 's1',
+      direction: 'income',
+      category_id: 'cmo',
+      member_id: 'm1',
+      payee: 'Ada Obi (#12)',
+      description: null,
+      amount: 20,
+      txn_date: '2026-03-01',
+    });
+    expect(calls.inserted).toMatchObject({ member_id: 'm1', payee: 'Ada Obi (#12)' });
+  });
+
+  it('lists the category ids a group may record against', async () => {
+    const { client, calls } = makeAppClient({
+      tables: {
+        sub_account_categories: {
+          rows: [{ category_id: 'cmo' }, { category_id: 'don' }],
+        },
+      },
+    });
+    const ids = await listSubAccountCategoryIds(client, 's1');
+    expect(ids).toEqual(['cmo', 'don']);
+    expect(calls.filters).toContainEqual(['sub_account_id', 's1']);
+  });
+
+  it('lists the group dues attributed to a member, newest first', async () => {
+    const { client, calls } = makeAppClient({
+      tables: {
+        sub_account_transactions: {
+          rows: [{ ...txn, member_id: 'm1', sub_accounts: { name: 'CMO', slug: 'cmo' } }],
+        },
+      },
+    });
+    const rows = await listMemberSubAccountDues(client, 'm1');
+    expect(rows).toHaveLength(1);
+    expect(calls.filters).toContainEqual(['member_id', 'm1']);
+    expect(calls.filters).toContainEqual(['is_active', true]);
+    expect(calls.ordered).toContainEqual(['txn_date', { ascending: false }]);
   });
 
   it('lists monthly reports newest period first', async () => {
