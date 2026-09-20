@@ -25,6 +25,7 @@ import {
   type ContributionFilter,
 } from '@/lib/contributions/search';
 import { listHouseholds, listMembers } from '@/lib/members/api';
+import { householdLabel } from '@/lib/members/search';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 import { AnnualDuesWidget } from '@/routes/contributions/AnnualDuesWidget';
 
@@ -201,7 +202,7 @@ export function ContributionsLedgerPage() {
                 <option value="">All households</option>
                 {households.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {householdLabel(h)}
                   </option>
                 ))}
               </select>

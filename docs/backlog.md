@@ -63,6 +63,29 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 
 ---
 
+## 3a. Scope Changes / Decisions Log
+
+- **2026-09 — Member self-service paused.** The org runs the portal as a
+  leadership/back-office tool; ordinary members are **not** given logins.
+  Implemented as a soft, reversible flag `MEMBER_SELF_SERVICE_ENABLED` (`false`)
+  in `src/lib/auth/roles.ts` — routes, RLS, and the `member` role are retained
+  and re-enable by flipping the flag. Admin Console no longer offers `member` as
+  an assignable role. Affects **Sprint 3** (paused) and **story 10.4** (member
+  rollout deferred). The `members` roster, contributions, households, and reports
+  are unchanged. Annual tax summaries are generated/distributed by leadership.
+
+- **2026-09 — Household Family Number added (approved scope change).** The
+  community's legacy roster numbers **families**, not individuals, and members
+  already quote that number when donating; it is also wanted for end-of-year
+  tax summation. `households.family_number` (unique, never reused) was added in
+  migration `20260919120000__household_family_number.sql` and surfaced on the
+  Households page, the contribution entry + ledger pickers, the dues widget, and
+  the Annual Summary PDF. `members.member_number` is unchanged and remains the
+  internal per-person roster id. Sequenced deliberately **before** story 10.2 so
+  the import numbers each household once instead of backfilling.
+
+---
+
 ## 4. Sprint-by-Sprint Backlog
 
 > Each sprint lists user stories with priority and estimate. Tasks marked **[BLOCKER]** must complete before the sprint ends or the dependent sprint slides.
@@ -131,7 +154,7 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 
 ---
 
-### 4.4 Sprint 3 — Member Self-Service Portal *(M1)*
+### 4.4 Sprint 3 — Member Self-Service Portal *(M1)* — ⏸️ Paused (org decision 2026-09: member self-service logins paused; portal runs as a leadership/back-office tool). Code retained behind the `MEMBER_SELF_SERVICE_ENABLED` flag (`src/lib/auth/roles.ts` = `false`); flip to `true` to restore. The `members` roster, contributions, households, and reports are unaffected.
 
 **Sprint Goal:** A member can log in, see their family's information, and prepare to view contributions (read-only path is wired even if no contributions exist yet).
 
@@ -268,12 +291,12 @@ Volunteer reality: **sprints are scoped to be small, demoable, and reviewable in
 | 10.1 | **[BLOCKER]** Provision Supabase **prod** project; run all migrations; configure secrets in GitHub Actions | P0 | M | tech §8.3 | ✅ Done (prod project provisioned; all migrations applied; Actions secrets configured, 2026-08-17) |
 | 10.2 | Production data import: 78 members / 89 families via CSV import; verify member-number range continues correctly | P0 | L | PRD §4.2, §9.2 | 🟡 Ready — owner-gated (gate 7); `docs/templates/members-import-template.csv` prepped |
 | 10.3 | Onboard real role-holders (Chaplain, Treasurer, FS, Group FS x2, Council, Admin) and verify 2FA enrollment policy | P0 | M | PRD §4.1 | 🟡 Ready — owner-gated (gate 8); follow `runbooks/add-user.md` |
-| 10.4 | Training sessions: 1 for FS/Treasurer/Group FS (admin tasks), 1 for Council/Chaplain, 1 for member-facing rollout | P0 | L | PRD risks | ⏳ Owner-led; agent can draft session outlines on request |
+| 10.4 | Training sessions: 1 for FS/Treasurer/Group FS (admin tasks), 1 for Council/Chaplain. Member-facing rollout **deferred** (self-service paused, 2026-09) | P0 | L | PRD risks | ⏳ Owner-led; agent can draft session outlines on request |
 | 10.5 | First monthly backup run + restore drill from `docs/runbooks/backup.md` | P0 | M | NFR §5 | 🟡 Ready — owner-gated; follow `runbooks/backup.md` §2–§3 |
 | 10.6 | Issue a real End-of-Year summary for one consenting family as a launch-readiness check | P0 | S | PRD §4.6 | ⏳ Owner-gated (gate 9); FS signature already validated (Sprint 8) |
 | 10.7 | Cutover: redirect domain (if applicable), publish portal link to community | P0 | S | PRD §10 | ⏳ Owner-led (gate 4); follow new `runbooks/go-live.md`; custom domain deferred (§9.2 Q10) |
 
-**Demo:** A live member logs in and downloads their signed Annual Summary. Council reviews real aggregate dashboards.
+**Demo:** Leadership generates and distributes a signed Annual Summary for a family (member self-service paused, 2026-09). Council reviews real aggregate dashboards.
 
 ---
 

@@ -22,6 +22,7 @@ import {
   type ContributionFormValues,
 } from '@/lib/contributions/validation';
 import { listHouseholds, listMembers } from '@/lib/members/api';
+import { householdLabel } from '@/lib/members/search';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 
 const FIELD =
@@ -213,7 +214,7 @@ export function ContributionFormPage() {
                 <option value="">Select a household</option>
                 {households.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {householdLabel(h)}
                   </option>
                 ))}
               </select>

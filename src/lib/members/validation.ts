@@ -59,17 +59,34 @@ export function toMemberInput(values: MemberFormValues): MemberInput {
 
 export const householdFormSchema = z.object({
   name: z.string().trim().min(1, 'Household name is required.'),
+  family_number: z
+    .union([
+      z.literal(''),
+      z.coerce
+        .number({ message: 'Family number must be a whole number.' })
+        .int('Family number must be a whole number.')
+        .positive('Family number must be greater than zero.'),
+    ])
+    .optional(),
   primary_member_id: z.string().optional(),
 });
 
 export type HouseholdFormValues = z.infer<typeof householdFormSchema>;
+/** Pre-validation shape (family_number arrives as a string from the DOM). */
+export type HouseholdFormInput = z.input<typeof householdFormSchema>;
 
 export function toHouseholdInput(values: HouseholdFormValues): {
   name: string;
+  family_number: number | null;
   primary_member_id: string | null;
 } {
   const primary = (values.primary_member_id ?? '').trim();
-  return { name: values.name.trim(), primary_member_id: primary === '' ? null : primary };
+  const family = values.family_number;
+  return {
+    name: values.name.trim(),
+    family_number: family === '' || family === undefined ? null : family,
+    primary_member_id: primary === '' ? null : primary,
+  };
 }
 
 /**

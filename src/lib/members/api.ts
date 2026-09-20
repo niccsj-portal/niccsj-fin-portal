@@ -87,9 +87,17 @@ export async function listHouseholds(client: SupabaseClient): Promise<HouseholdR
   const { data, error } = await client
     .from('households')
     .select('*')
+    .order('family_number', { ascending: true, nullsFirst: false })
     .order('name', { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as HouseholdRow[];
+}
+
+/** Suggested next sequential family number (PRD §4.2; overridable by admin). */
+export async function nextFamilyNumber(client: SupabaseClient): Promise<number> {
+  const { data, error } = await client.rpc('next_family_number');
+  if (error) throw new Error(error.message);
+  return Number(data ?? 1);
 }
 
 export async function createHousehold(

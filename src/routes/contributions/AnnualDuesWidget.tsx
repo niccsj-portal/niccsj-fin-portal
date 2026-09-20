@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CategoryRow, ContributionRow } from '@/lib/contributions/types';
 import { formatUSD, householdDuesStatus } from '@/lib/contributions/search';
+import { householdLabel } from '@/lib/members/search';
 import type { HouseholdRow } from '@/lib/members/types';
 
 /** Category names that count as "annual dues" for the tracking widget. */
@@ -58,7 +59,7 @@ export function AnnualDuesWidget({
                 key={s.household.id}
                 className="flex items-center justify-between border-b border-line-200 pb-1.5 text-body-sm last:border-b-0"
               >
-                <span className="text-ink-900">{s.household.name}</span>
+                <span className="text-ink-900">{householdLabel(s.household)}</span>
                 {s.paid ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-caption font-medium text-success">
                     <span aria-hidden="true">✓</span> Paid {formatUSD(s.total)}

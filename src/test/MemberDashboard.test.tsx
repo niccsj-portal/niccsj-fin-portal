@@ -27,6 +27,7 @@ const member: MemberRow = {
 const household: HouseholdRow = {
   id: 'h1',
   name: 'Okafor Family',
+  family_number: 1,
   primary_member_id: 'm1',
   is_active: true,
   opening_balance: 0,

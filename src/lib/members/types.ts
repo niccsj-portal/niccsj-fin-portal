@@ -28,6 +28,7 @@ export interface MemberRow {
 export interface HouseholdRow {
   id: string;
   name: string;
+  family_number: number | null;
   primary_member_id: string | null;
   is_active: boolean;
   opening_balance: number;
@@ -52,6 +53,7 @@ export interface MemberInput {
 
 export interface HouseholdInput {
   name: string;
+  family_number: number | null;
   primary_member_id: string | null;
 }
 

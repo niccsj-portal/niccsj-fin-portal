@@ -18,12 +18,14 @@ import {
   createHousehold,
   listHouseholds,
   listMembers,
+  nextFamilyNumber,
   setPrimaryMember,
 } from '@/lib/members/api';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 import {
   householdFormSchema,
   toHouseholdInput,
+  type HouseholdFormInput,
   type HouseholdFormValues,
 } from '@/lib/members/validation';
 
@@ -48,10 +50,11 @@ export function HouseholdsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<HouseholdFormValues>({
+  } = useForm<HouseholdFormInput, unknown, HouseholdFormValues>({
     resolver: zodResolver(householdFormSchema),
-    defaultValues: { name: '', primary_member_id: '' },
+    defaultValues: { name: '', family_number: '', primary_member_id: '' },
   });
 
   const load = useCallback(async () => {
@@ -77,6 +80,19 @@ export function HouseholdsPage() {
     void load();
   }, [load]);
 
+  const suggestFamilyNumber = useCallback(async () => {
+    if (!client) return;
+    try {
+      setValue('family_number', String(await nextFamilyNumber(client)));
+    } catch {
+      // A failed suggestion is not fatal — the admin can type the number.
+    }
+  }, [client, setValue]);
+
+  useEffect(() => {
+    void suggestFamilyNumber();
+  }, [suggestFamilyNumber]);
+
   const membersByHousehold = useMemo(() => {
     const map = new Map<string, MemberRow[]>();
     for (const m of members) {
@@ -98,7 +114,8 @@ export function HouseholdsPage() {
     setError(null);
     try {
       await createHousehold(client, toHouseholdInput(values));
-      reset({ name: '', primary_member_id: '' });
+      reset({ name: '', family_number: '', primary_member_id: '' });
+      await suggestFamilyNumber();
       await load();
     } catch {
       setError('We could not create that household. Please try again.');
@@ -122,6 +139,22 @@ export function HouseholdsPage() {
 
       {canEdit ? (
         <form onSubmit={onCreate} noValidate className="mt-4 flex flex-wrap items-end gap-3" aria-label="Create household">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="household-family-number" className="text-caption font-medium text-ink-700">
+              Family number
+            </label>
+            <Input
+              id="household-family-number"
+              className="w-32"
+              inputMode="numeric"
+              {...register('family_number')}
+            />
+            {errors.family_number ? (
+              <p role="alert" className="text-caption text-destructive">
+                {errors.family_number.message}
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="household-name" className="text-caption font-medium text-ink-700">
               New household name
@@ -154,6 +187,7 @@ export function HouseholdsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Family #</TableHead>
                 <TableHead>Household</TableHead>
                 <TableHead>Primary member</TableHead>
                 <TableHead>Members</TableHead>
@@ -165,6 +199,7 @@ export function HouseholdsPage() {
                 const hMembers = membersByHousehold.get(h.id) ?? [];
                 return (
                   <TableRow key={h.id}>
+                    <TableCell className="tabular-nums">{h.family_number ?? '—'}</TableCell>
                     <TableCell className="font-medium">{h.name}</TableCell>
                     <TableCell>{memberName(h.primary_member_id)}</TableCell>
                     <TableCell>{hMembers.length}</TableCell>

@@ -119,7 +119,7 @@ Deno.serve(async (req: Request) => {
   // ---- family + year data (server-side; never trust the client) -----------
   const { data: household, error: householdErr } = await admin
     .from('households')
-    .select('id, name, primary_member_id')
+    .select('id, name, family_number, primary_member_id')
     .eq('id', household_id)
     .single();
   if (householdErr || !household) return errorResponse('Household not found.', 404);
@@ -263,8 +263,10 @@ Deno.serve(async (req: Request) => {
   });
   cursorY -= 34;
 
-  // Family block.
+  // Family block. The family number leads because that is the identifier the
+  // community uses when donating; the per-person member number follows it.
   const familyLines = [
+    household.family_number != null ? `Family number: ${household.family_number}` : null,
     `Household: ${household.name}`,
     primary ? `Primary member: ${personName(primary)}` : null,
     primary?.member_number != null ? `Member number: ${primary.member_number}` : null,

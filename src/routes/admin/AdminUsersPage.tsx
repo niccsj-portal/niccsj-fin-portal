@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { APP_ROLES, ROLE_LABELS, type AppRole } from '@/lib/auth/roles';
+import { assignableRoles, ROLE_LABELS, type AppRole } from '@/lib/auth/roles';
 import { listUsers, setUserActive, updateUserRole } from '@/lib/admin/api';
 import type { AdminUserRow } from '@/lib/admin/types';
 
@@ -177,7 +177,7 @@ export function AdminUsersPage() {
                       disabled={busyId === u.id}
                       onChange={(e) => onRoleSelect(u, e.target.value as AppRole)}
                     >
-                      {APP_ROLES.map((r) => (
+                      {assignableRoles(u.role).map((r) => (
                         <option key={r} value={r}>
                           {ROLE_LABELS[r]}
                         </option>

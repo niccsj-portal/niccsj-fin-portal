@@ -90,6 +90,26 @@ describe('householdFormSchema + toHouseholdInput', () => {
     const input = toHouseholdInput(
       householdFormSchema.parse({ name: 'Eze Family', primary_member_id: '' }),
     );
-    expect(input).toEqual({ name: 'Eze Family', primary_member_id: null });
+    expect(input).toEqual({ name: 'Eze Family', family_number: null, primary_member_id: null });
+  });
+
+  it('accepts a family number and coerces the form string to an integer', () => {
+    const input = toHouseholdInput(
+      householdFormSchema.parse({ name: 'Eze Family', family_number: '7', primary_member_id: '' }),
+    );
+    expect(input).toEqual({ name: 'Eze Family', family_number: 7, primary_member_id: null });
+  });
+
+  it('treats a blank family number as unassigned rather than zero', () => {
+    const input = toHouseholdInput(
+      householdFormSchema.parse({ name: 'Eze Family', family_number: '', primary_member_id: '' }),
+    );
+    expect(input.family_number).toBeNull();
+  });
+
+  it('rejects a non-positive or fractional family number', () => {
+    expect(householdFormSchema.safeParse({ name: 'Eze', family_number: '0' }).success).toBe(false);
+    expect(householdFormSchema.safeParse({ name: 'Eze', family_number: '-3' }).success).toBe(false);
+    expect(householdFormSchema.safeParse({ name: 'Eze', family_number: '1.5' }).success).toBe(false);
   });
 });

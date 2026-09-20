@@ -1,4 +1,5 @@
 import type { CategoryRow, ContributionRow } from '@/lib/contributions/types';
+import { householdLabel } from '@/lib/members/search';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 
 /**
@@ -38,7 +39,7 @@ export function buildLookups(
   members: MemberRow[],
 ): LedgerLookups {
   const cat = new Map(categories.map((c) => [c.id, c.name]));
-  const hh = new Map(households.map((h) => [h.id, h.name]));
+  const hh = new Map(households.map((h) => [h.id, householdLabel(h)]));
   const mem = new Map(members.map((m) => [m.id, `${m.first_name} ${m.last_name}`.trim()]));
   return {
     categoryName: (id) => cat.get(id) ?? '—',

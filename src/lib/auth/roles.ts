@@ -35,6 +35,35 @@ export const APP_ROLES = [
 
 export type AppRole = (typeof APP_ROLES)[number];
 
+/**
+ * Feature flag (org decision 2026-09): member self-service logins are paused —
+ * the portal runs as a leadership/back-office tool only. Nothing is deleted:
+ * routes, RLS, and the `member` enum value all remain, so flipping this back to
+ * `true` fully restores member self-service. While `false`, the Admin Console
+ * will not offer `member` as an assignable role (see `assignableRoles`).
+ */
+export const MEMBER_SELF_SERVICE_ENABLED = false;
+
+/**
+ * Roles an admin may assign from the Console. When member self-service is
+ * paused, `member` is withheld — but any role a user *already* holds is always
+ * included by `assignableRoles` so existing assignments still render/select.
+ */
+export const ASSIGNABLE_ROLES: readonly AppRole[] = MEMBER_SELF_SERVICE_ENABLED
+  ? APP_ROLES
+  : APP_ROLES.filter((r) => r !== 'member');
+
+/**
+ * The role options to show for a user, preserving their current role even if it
+ * is otherwise withheld (so a legacy `member` row remains visible + changeable).
+ */
+export function assignableRoles(currentRole: AppRole | null | undefined): AppRole[] {
+  if (currentRole && !ASSIGNABLE_ROLES.includes(currentRole)) {
+    return [currentRole, ...ASSIGNABLE_ROLES];
+  }
+  return [...ASSIGNABLE_ROLES];
+}
+
 /** Human-readable labels for the role badge and admin screens. */
 export const ROLE_LABELS: Record<AppRole, string> = {
   member: 'Member',

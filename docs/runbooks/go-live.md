@@ -46,7 +46,7 @@ cross project **approval gates** (PM.md §3.3) — they are owner-executed on a
    supabase db push --linked
    ```
    or paste each file from `supabase/migrations/` into the SQL Editor
-   **oldest → newest** (the 15-file ordered list is in PM.md §5J.4). The
+   **oldest → newest** (the 17-file ordered list is in PM.md §5J.4). The
    SQL Editor path works on any network (no DB port needed).
 2. Confirm applied set:
    ```powershell
@@ -86,10 +86,21 @@ cross project **approval gates** (PM.md §3.3) — they are owner-executed on a
 ## Phase 5 — Import real data (story 10.2) — **gate 7**
 
 1. **Take a backup first** (`backup.md` §1 — pre-import).
-2. Admin → **Members → Import**; upload the filled
+2. **Create the households first**, so members can be attached as they are
+   imported. Admin → **Households**: for each row in
+   `docs/templates/households-reference-template.csv`, enter the **Family
+   number** (the legacy S/N the community already quotes when donating) and the
+   household name. The form suggests the next free number; numbers are unique
+   and **never reused**, so a family that leaves keeps its number permanently.
+3. Admin → **Members → Import**; upload the filled
    `members-import-template.csv`; review the validation preview; import only when
-   the preview is clean.
-3. Create/confirm households and designate primary members.
+   the preview is clean. `member_number` is the internal **per-person** roster
+   id — keep it flat and sequential, and do not encode the family number into
+   it. Group each family's rows together in the CSV for readability.
+4. Attach each member to their household and designate primary members.
+5. Spot-check that the Contributions form's household picker shows
+   `<family number> — <name>` so the FS can record a donation straight from the
+   number a donor quotes.
 4. **Verify the member-number range continues:** the next auto number must be
    `max(member_number) + 1` (records new members after the imported set).
 5. Spot-check a few families for correct household grouping and contact details.

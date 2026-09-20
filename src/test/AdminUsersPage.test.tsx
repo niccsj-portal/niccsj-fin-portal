@@ -70,11 +70,29 @@ describe('AdminUsersPage', () => {
     const { calls } = setup();
     await screen.findByText('ngozi@example.com');
 
-    // chaplain -> member is a downgrade: applied directly.
+    // chaplain -> finance_council is a downgrade: applied directly.
     fireEvent.change(screen.getByLabelText(/role for ngozi@example.com/i), {
-      target: { value: 'member' },
+      target: { value: 'finance_council' },
     });
-    await waitFor(() => expect(calls.updated).toEqual({ role: 'member' }));
+    await waitFor(() => expect(calls.updated).toEqual({ role: 'finance_council' }));
     expect(screen.queryByText(/confirm role elevation/i)).not.toBeInTheDocument();
+  });
+
+  it('no longer offers Member as an assignable role for a non-member (self-service paused)', async () => {
+    setup();
+    await screen.findByText('ngozi@example.com');
+
+    const select = screen.getByLabelText(/role for ngozi@example.com/i) as HTMLSelectElement;
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).not.toContain('member');
+  });
+
+  it('still shows Member for a legacy member account so it can be changed', async () => {
+    setup();
+    await screen.findByText('chidi@example.com');
+
+    const select = screen.getByLabelText(/role for chidi@example.com/i) as HTMLSelectElement;
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain('member');
   });
 });

@@ -8,6 +8,7 @@ import {
   listHouseholds,
   listMembers,
   nextMemberNumber,
+  nextFamilyNumber,
   setPrimaryMember,
   updateMember,
 } from '@/lib/members/api';
@@ -100,6 +101,19 @@ describe('nextMemberNumber', () => {
   });
 });
 
+describe('nextFamilyNumber', () => {
+  it('returns the RPC suggestion as a number', async () => {
+    const { client, rpc } = makeMembersClient({ nextNumber: 90 });
+    expect(await nextFamilyNumber(client)).toBe(90);
+    expect(rpc).toHaveBeenCalledWith('next_family_number');
+  });
+
+  it('throws when the RPC errors', async () => {
+    const { client } = makeMembersClient({ rpcError: true });
+    await expect(nextFamilyNumber(client)).rejects.toThrow('rpc failed');
+  });
+});
+
 describe('createMember', () => {
   it('inserts the input and returns the created row', async () => {
     const { client, calls } = makeMembersClient({ single: { ...sampleRow, member_number: 79 } });
@@ -128,17 +142,28 @@ describe('deactivateMember', () => {
 });
 
 describe('households', () => {
-  it('lists households ordered by name', async () => {
+  it('lists households ordered by family number, then name', async () => {
     const { client, from, calls } = makeMembersClient({ rows: [] });
     await listHouseholds(client);
     expect(from).toHaveBeenCalledWith('households');
-    expect(calls.ordered).toEqual([['name', { ascending: true }]]);
+    expect(calls.ordered).toEqual([
+      ['family_number', { ascending: true, nullsFirst: false }],
+      ['name', { ascending: true }],
+    ]);
   });
 
   it('creates a household', async () => {
     const { client, calls } = makeMembersClient({ single: { id: 'h2' } });
-    await createHousehold(client, { name: 'Eze Family', primary_member_id: null });
-    expect(calls.inserted).toEqual({ name: 'Eze Family', primary_member_id: null });
+    await createHousehold(client, {
+      name: 'Eze Family',
+      family_number: 7,
+      primary_member_id: null,
+    });
+    expect(calls.inserted).toEqual({
+      name: 'Eze Family',
+      family_number: 7,
+      primary_member_id: null,
+    });
   });
 
   it('sets the primary member', async () => {

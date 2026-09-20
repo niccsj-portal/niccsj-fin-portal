@@ -62,6 +62,7 @@ function household(id: string): HouseholdRow {
   return {
     id,
     name: `Household ${id}`,
+    family_number: null,
     primary_member_id: null,
     is_active: true,
     opening_balance: 0,

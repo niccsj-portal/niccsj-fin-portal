@@ -48,7 +48,9 @@ export function makeMembersClient(config: FakeDbConfig = {}) {
     },
     order: (col: string, opts: unknown) => {
       calls.ordered.push([col, opts]);
-      return Promise.resolve(listResult);
+      // Returns the builder (not a Promise) so `.order().order()` chains; the
+      // builder's `then` still resolves to the list result when awaited.
+      return builder;
     },
     single: () => Promise.resolve(singleResult),
     maybeSingle: () => Promise.resolve(singleResult),
