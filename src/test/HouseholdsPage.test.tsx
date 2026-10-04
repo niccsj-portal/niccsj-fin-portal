@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AuthProvider } from '@/lib/auth/AuthContext';
@@ -72,5 +72,43 @@ describe('HouseholdsPage', () => {
     expect(
       screen.queryByLabelText(/set primary member for okafor family/i),
     ).not.toBeInTheDocument();
+  });
+
+  it('lets an editor rename a household and correct its family number', async () => {
+    const app = renderPage('admin');
+    fireEvent.click(await screen.findByRole('button', { name: /edit okafor family/i }));
+
+    fireEvent.change(screen.getByLabelText(/family number for okafor family/i), {
+      target: { value: '7' },
+    });
+    fireEvent.change(screen.getByLabelText(/household name for okafor family/i), {
+      target: { value: 'Okafor (Chinedu & Ngozi)' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() =>
+      expect(app.calls.updated).toEqual({
+        name: 'Okafor (Chinedu & Ngozi)',
+        family_number: 7,
+      }),
+    );
+  });
+
+  it('leaves the row unchanged when the edit is cancelled', async () => {
+    const app = renderPage('admin');
+    fireEvent.click(await screen.findByRole('button', { name: /edit okafor family/i }));
+    fireEvent.change(screen.getByLabelText(/household name for okafor family/i), {
+      target: { value: 'Typo' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(app.calls.updated).toBeNull();
+    expect(screen.getByText('Okafor Family')).toBeInTheDocument();
+  });
+
+  it('does not offer an edit control to a read-only treasurer', async () => {
+    renderPage('treasurer');
+    expect(await screen.findByText('Okafor Family')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit okafor family/i })).not.toBeInTheDocument();
   });
 });

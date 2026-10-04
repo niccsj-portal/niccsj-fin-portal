@@ -20,6 +20,7 @@ import {
   listMembers,
   nextFamilyNumber,
   setPrimaryMember,
+  updateHousehold,
 } from '@/lib/members/api';
 import type { HouseholdRow, MemberRow } from '@/lib/members/types';
 import {
@@ -45,6 +46,9 @@ export function HouseholdsPage() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [draftFamilyNumber, setDraftFamilyNumber] = useState('');
 
   const {
     register,
@@ -132,6 +136,41 @@ export function HouseholdsPage() {
     }
   };
 
+  const startEdit = (h: HouseholdRow) => {
+    setEditingId(h.id);
+    setDraftName(h.name);
+    setDraftFamilyNumber(h.family_number == null ? '' : String(h.family_number));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setError(null);
+  };
+
+  const onSaveEdit = async (householdId: string) => {
+    if (!client) return;
+    const name = draftName.trim();
+    if (!name) {
+      setError('Household name is required.');
+      return;
+    }
+    const raw = draftFamilyNumber.trim();
+    const familyNumber = raw === '' ? null : Number(raw);
+    if (familyNumber != null && (!Number.isInteger(familyNumber) || familyNumber <= 0)) {
+      setError('Family number must be a whole number greater than zero.');
+      return;
+    }
+    setError(null);
+    try {
+      await updateHousehold(client, householdId, { name, family_number: familyNumber });
+      setEditingId(null);
+      await load();
+    } catch {
+      // The unique constraint is the real guard against a duplicate number.
+      setError('We could not save that household. The family number may already be in use.');
+    }
+  };
+
   return (
     <div>
       <div className="rule-gold mb-4 w-16" aria-hidden="true" />
@@ -192,15 +231,40 @@ export function HouseholdsPage() {
                 <TableHead>Primary member</TableHead>
                 <TableHead>Members</TableHead>
                 {canEdit ? <TableHead>Set primary</TableHead> : null}
+                {canEdit ? <TableHead className="text-right">Actions</TableHead> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
               {households.map((h) => {
                 const hMembers = membersByHousehold.get(h.id) ?? [];
+                const isEditing = editingId === h.id;
                 return (
                   <TableRow key={h.id}>
-                    <TableCell className="tabular-nums">{h.family_number ?? '—'}</TableCell>
-                    <TableCell className="font-medium">{h.name}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {isEditing ? (
+                        <Input
+                          aria-label={`Family number for ${h.name}`}
+                          className="w-24"
+                          inputMode="numeric"
+                          value={draftFamilyNumber}
+                          onChange={(e) => setDraftFamilyNumber(e.target.value)}
+                        />
+                      ) : (
+                        (h.family_number ?? '—')
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {isEditing ? (
+                        <Input
+                          aria-label={`Household name for ${h.name}`}
+                          className="w-64"
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                        />
+                      ) : (
+                        h.name
+                      )}
+                    </TableCell>
                     <TableCell>{memberName(h.primary_member_id)}</TableCell>
                     <TableCell>{hMembers.length}</TableCell>
                     {canEdit ? (
@@ -218,6 +282,35 @@ export function HouseholdsPage() {
                             </option>
                           ))}
                         </select>
+                      </TableCell>
+                    ) : null}
+                    {canEdit ? (
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" size="sm" onClick={() => void onSaveEdit(h.id)}>
+                              Save
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelEdit}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Edit ${h.name}`}
+                            onClick={() => startEdit(h)}
+                          >
+                            Edit
+                          </Button>
+                        )}
                       </TableCell>
                     ) : null}
                   </TableRow>
